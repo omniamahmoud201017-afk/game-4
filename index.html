@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>لعبة صعبة لكن مألوفة</title>
+<!-- Tailwind للمرحلتين 1 و5 (بدون preflight حتى لا يتغير تصميم المراحل الأخرى) -->
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>if (window.tailwind) { tailwind.config = { corePlugins: { preflight: false } }; }</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@500;700;800&family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   عام
+   ===================================================================== */
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  --pad: 20px;
+  margin: 0; min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: var(--pad);
+  padding-top: calc(var(--pad) + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(var(--pad) + env(safe-area-inset-bottom, 0px));
+  background: #f8fafc; color: #1e293b;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+.u-hide { display: none !important; }
+
+/* خلفية كل مرحلة كما في الملف الأصلي */
+body[data-view="s1"], body[data-view="s4"] { --pad: 16px; box-sizing: border-box; }
+body[data-view="s1"], body[data-view="s4"] { background: linear-gradient(135deg, #fef08a 0%, #bae6fd 50%, #fbcfe8 100%); }
+/* شريط تقدم المراحل */
+#strip {
+  display: none; align-items: center; gap: 12px; max-width: 100%;
+  background: rgba(255,255,255,.93); border: 2px solid #c7d2fe; border-radius: 999px;
+  padding: 6px 16px; margin: 12px 0; box-shadow: 0 2px 6px rgba(0,0,0,.06);
+  font-family: 'Cairo', sans-serif; font-weight: 700; font-size: .8rem; color: #4338ca;
+}
+#strip.on { display: inline-flex; }
+#strip .lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#strip .pips { display: flex; gap: 4px; flex-shrink: 0; }
+#strip .pip { display: block; width: 22px; height: 8px; border-radius: 99px; background: #e2e8f0; }
+#strip .pip.done { background: #10b981; }
+#strip .pip.cur { background: #4f46e5; }
+
+/* أزرار ميزو العلوية (المراحل 2 و3 والبداية والتقرير) */
+#bctl { position: absolute; top: 20px; left: 20px; display: none; gap: 10px; z-index: 10; }
+#bctl button { border: none; font-weight: bold; font-size: 12px; padding: 8px 12px; border-radius: 10px; cursor: pointer; }
+@media (max-width: 640px) {
+  body.has-ctl { padding-top: calc(64px + env(safe-area-inset-top, 0px)); }
+}
+
+@keyframes bounceSlow { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.mezo-bounce { animation: bounceSlow 2.5s infinite ease-in-out; }
+@keyframes pulseGlow { 0%,100% { box-shadow: 0 0 0 0 rgba(79,70,229,.4); } 50% { box-shadow: 0 0 0 12px rgba(79,70,229,0); } }
+.speaking-glow { animation: pulseGlow 1.5s infinite; }
+@keyframes adaptiveGlow {
+  0% { box-shadow: 0 0 0 0 rgba(16,185,129,.8), 0 0 15px rgba(16,185,129,.6); border-color: #10b981; }
+  50% { box-shadow: 0 0 0 12px rgba(16,185,129,0), 0 0 25px rgba(16,185,129,.9); border-color: #34d399; }
+  100% { box-shadow: 0 0 0 0 rgba(16,185,129,.8), 0 0 15px rgba(16,185,129,.6); border-color: #10b981; }
+}
+.adaptive-hint-glow { animation: adaptiveGlow 1.2s infinite ease-in-out; border-width: 4px !important; transform: scale(1.02); transition: transform .3s ease; }
+
+/* =====================================================================
+   المرحلتان 1 و5  (تصميم Tailwind) — نطاق #cardA
+   preflight مصغّر بأولوية صفر حتى تتغلب عليه أصناف Tailwind
+   ===================================================================== */
+:where(#cardA), :where(#cardA) *, :where(#cardA) ::before, :where(#cardA) ::after {
+  box-sizing: border-box; border-width: 0; border-style: solid; border-color: #e5e7eb;
+}
+#cardA { font-family: 'Cairo', sans-serif; line-height: 1.5; }
+:where(#cardA) h1, :where(#cardA) h2, :where(#cardA) h3, :where(#cardA) p { margin: 0; }
+:where(#cardA) h1, :where(#cardA) h2, :where(#cardA) h3 { font-size: inherit; font-weight: inherit; }
+:where(#cardA) button { font-family: inherit; font-size: 100%; font-weight: inherit; line-height: inherit; color: inherit; margin: 0; padding: 0; background-color: transparent; background-image: none; cursor: pointer; text-transform: none; -webkit-appearance: button; }
+:where(#cardA) img, :where(#cardA) svg, :where(#cardA) iframe { display: block; vertical-align: middle; }
+:where(#cardA) img { max-width: 100%; height: auto; }
+@keyframes pulse-glow { 0%,100% { filter: drop-shadow(0 0 8px rgba(34,211,238,.8)); } 50% { filter: drop-shadow(0 0 15px rgba(34,211,238,1)); } }
+#cardA .robot-glow { animation: pulse-glow 2s infinite; }
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+#cardA .floating { animation: float 3s ease-in-out infinite; }
+#cardA .progress-dot { transition: all .3s; }
+#cardA button:focus-visible, #cardA .choice:focus-visible { outline: 4px solid #7c3aed; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { #cardA .robot-glow, #cardA .floating, #cardA .animate-bounce { animation: none; } }
+
+/* =====================================================================
+   المرحلتان 2 و3 + البداية + التقرير (تصميم البطاقة البيضاء) — نطاق #cardB
+   ===================================================================== */
+#cardB { width: 100%; max-width: 1050px; background: #ffffff; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,.05); padding: 30px; box-sizing: border-box; text-align: center; position: relative; }
+#cardB .vw { display: none; }
+#cardB .vw.on { display: block; }
+#cardB .btn-primary { background-color: #4f46e5; color: white; font-weight: bold; padding: 12px 24px; border-radius: 12px; border: none; cursor: pointer; transition: background .2s; box-shadow: 0 4px 6px rgba(0,0,0,.1); font-size: 1rem; }
+#cardB .btn-primary:hover { background-color: #4338ca; }
+#cardB .input-box { width: 100%; padding: 12px 16px; font-size: 1.1rem; border: 2px solid #cbd5e1; border-radius: 12px; text-align: center; outline: none; margin-bottom: 16px; box-sizing: border-box; }
+#cardB .input-box:focus { border-color: #4f46e5; }
+#cardB .bx-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-weight: bold; color: #64748b; gap: 8px; flex-wrap: wrap; }
+#cardB .badge { background: #e0e7ff; color: #4338ca; padding: 6px 12px; border-radius: 8px; font-size: .85rem; }
+
+/* التقرير الشامل */
+#cardB .rp-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+#cardB .rp-kpi { background: #fff; padding: 12px; border-radius: 16px; text-align: center; border: 2px solid; }
+#cardB .rp-kpi span { display: block; font-size: .75rem; font-weight: bold; margin-bottom: 4px; }
+#cardB .rp-kpi strong { font-weight: bold; }
+#cardB .rp-h { font-size: 1.05rem; font-weight: bold; color: #312e81; margin: 0 0 10px; }
+#cardB .rp-box { background: rgba(238,242,255,.7); border: 2px solid #c7d2fe; padding: 20px; border-radius: 16px; margin-bottom: 24px; display: flex; flex-direction: column; gap: 16px; text-align: right; }
+#cardB .rp-box h4 { font-weight: bold; color: #312e81; font-size: .95rem; margin: 0 0 4px 0; }
+#cardB .rp-box p { font-size: .9rem; color: #334155; margin: 0; line-height: 1.8; }
+#cardB .st-row { border: 1px solid #cbd5e1; border-radius: 16px; padding: 12px 14px; margin-bottom: 10px; background: #fff; }
+#cardB .st-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+#cardB .st-head b { color: #334155; font-size: .95rem; }
+#cardB .st-lvl { font-weight: bold; font-size: .85rem; }
+#cardB .st-skill { color: #64748b; font-size: .8rem; margin: 2px 0 8px; }
+#cardB .st-bar { height: 12px; border-radius: 99px; background: #e2e8f0; overflow: hidden; }
+#cardB .st-bar span { display: block; height: 100%; border-radius: 99px; }
+#cardB .st-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+#cardB .st-chips span { background: #f1f5f9; color: #475569; border-radius: 8px; padding: 3px 9px; font-size: .75rem; }
+#cardB .rp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+#cardB .rp-col { border-radius: 16px; padding: 14px 16px; text-align: right; }
+#cardB .rp-col h4 { margin: 0 0 8px; font-size: .95rem; }
+#cardB .rp-col ul { margin: 0; padding: 0 18px 0 0; font-size: .85rem; line-height: 1.9; color: #334155; }
+#cardB .rp-table { background: #fff; border: 1px solid #cbd5e1; border-radius: 16px; padding: 8px; margin-bottom: 24px; overflow-x: auto; }
+#cardB .rp-table table { width: 100%; text-align: right; font-size: .85rem; border-collapse: collapse; }
+#cardB .rp-table th { padding: 10px; background: #f1f5f9; color: #334155; border-bottom: 1px solid #cbd5e1; white-space: nowrap; }
+#cardB .rp-table td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+#cardB .rp-table tr.grp td { background: #eef2ff; color: #3730a3; font-weight: bold; }
+#cardB .rp-note { color: #64748b; font-size: .78rem; text-align: center; margin: -8px 0 20px; line-height: 1.8; }
+#cardB .rp-btns { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+#cardB .rp-btns button { color: #fff; font-weight: bold; padding: 12px 20px; border-radius: 12px; border: none; cursor: pointer; font-size: 1rem; }
+@media (max-width: 640px) {
+  #cardB { padding: 20px 14px; }
+  #cardB .rp-kpis { grid-template-columns: repeat(2, 1fr); }
+  #cardB .rp-cols { grid-template-columns: 1fr; }
+}
+
+/* =====================================================================
+   المرحلة 3 (الحروف وقواعد الصف) — نطاق #cardD
+   ===================================================================== */
+body[data-view="s3"] {
+  --pad: 0px; justify-content: flex-start;
+  --bg:#fff7e6; --ink:#2b2a33; --card:#ffffff; --line:#e8d9b8; --g:#4caf50; --o:#ee8134; --b:#2f6fd0;
+  background: var(--bg); color: var(--ink);
+}
+#cardD { width: 100%; text-align: center; user-select: none; font-family: "Baloo Bhaijaan 2", "Segoe UI", Tahoma, sans-serif; }
+#cardD *, #cardD *::before, #cardD *::after { box-sizing: border-box; }
+#cardD h1 { font-size: 1.6rem; margin: .6rem 0 .2rem; }
+#cardD p.t { margin: .2rem 1rem 1rem; font-size: 1.1rem; }
+#cardD .stars { font-size: 1.6rem; letter-spacing: .2rem; }
+#cardD .row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; padding: 0 10px; }
+#cardD .lc { width: min(30%, 260px); min-width: 150px; background: var(--card); border: 4px solid var(--line); border-radius: 18px; padding: 6px; position: relative; }
+#cardD .lc svg { width: 100%; height: auto; touch-action: none; display: block; border-radius: 12px; }
+#cardD .lc.done { border-color: var(--g); }
+#cardD .lc .ok { position: absolute; top: 6px; right: 10px; font-size: 2rem; display: none; }
+#cardD .lc.done .ok { display: block; }
+#cardD button { font-family: inherit; font-size: 1.2rem; background: var(--o); color: #fff; border: 0; border-radius: 30px; padding: .5rem 1.4rem; margin: .8rem; cursor: pointer; font-weight: 800; }
+#cardD button:focus-visible, #cardD .pic:focus-visible { outline: 4px solid var(--b); }
+#cardD .wheel { width: min(92vw, 360px); margin: 0 auto; display: block; }
+#cardD .slice { transition: opacity .3s; }
+#cardD .pics { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding: 6px 10px; }
+#cardD .pic { width: 92px; height: 92px; font-size: 3rem; background: var(--card); border: 4px solid var(--line); border-radius: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; margin: 0; color: inherit; }
+#cardD .pic.right { border-color: var(--g); background: #e6f6e6; }
+#cardD .pic.wrong { animation: dshake .35s; }
+@keyframes dshake { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+#cardD #dBubble { display: inline-block; background: #fff; border: 3px solid var(--b); border-radius: 20px; padding: .3rem 1rem; margin: .2rem; min-height: 2.2rem; font-size: 1.2rem; }
+.d-drop { position: fixed; width: 10px; height: 10px; border-radius: 50%; background: #58b8ff; pointer-events: none; animation: dfl .5s forwards; z-index: 9; }
+@keyframes dfl { to { transform: translateY(24px) scale(.3); opacity: 0; } }
+#d-spr { position: fixed; font-size: 2.4rem; pointer-events: none; display: none; z-index: 10; transform: translate(-50%, -90%); }
+@media (prefers-reduced-motion: reduce) { .d-drop, #cardD .pic.wrong { animation: none; } }
+
+/* قصة ليلى التفاعلية (داخل نافذة المرحلة 1) — نطاق #cardA */
+#cardA { --ink:#2b2350; --sky:#bfe6ff; --grass:#9be0a4; --blue:#3f7cff; --orange:#ff9a3c; --card:#fff; }
+#cardA .story-tv { width: 100%; background: var(--card); border-radius: 20px; overflow: hidden; border: 3px solid var(--ink); }
+#cardA .story-stage { position: relative; aspect-ratio: 2/1; background: linear-gradient(var(--sky) 0 72%, var(--grass) 72%); }
+#cardA .story-sc { position: absolute; inset: 0; opacity: 0; transition: opacity .5s; pointer-events: none; }
+#cardA .story-sc.on { opacity: 1; }
+#cardA .story-tv svg { display: block; width: 100%; height: 100%; }
+#cardA .story-tv svg text { font-family: "Baloo Bhaijaan 2", sans-serif; font-weight: 800; fill: #2b2350; }
+#cardA .story-pop { opacity: 0; }
+#cardA .on .story-pop { animation: st-pop .5s var(--d,0s) both; }
+@keyframes st-pop { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: scale(1); } }
+#cardA .on .story-mv { animation: st-mv 1s 1.6s both ease-in-out; }
+@keyframes st-mv { to { transform: translateX(-60px); } }
+#cardA .on .story-blink { animation: st-bl 1s var(--d,0s) infinite alternate; }
+@keyframes st-bl { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+#cardA .story-cap { margin: 0; padding: 8px 12px; font-size: clamp(.9rem, 2vw, 1.1rem); text-align: center; min-height: 2.8em; font-family: "Baloo Bhaijaan 2", sans-serif; }
+#cardA .story-bar { height: 6px; background: rgba(0,0,0,.12); }
+#cardA .story-bar i { display: block; height: 100%; width: 0; background: var(--orange); }
+#cardA .story-ctl { display: flex; gap: 6px; justify-content: center; padding: 8px; flex-wrap: wrap; }
+#cardA .story-ctl button, #cardA #storyStartBtn { font-family: "Baloo Bhaijaan 2", sans-serif; font-weight: 800; border: 2px solid var(--ink); background: var(--orange); color: #2b2350; border-radius: 12px; padding: 4px 12px; cursor: pointer; font-size: .9rem; }
+</style>
+</head>
+<body data-view="start">
+
+<!-- أيقونة ميزو (المرحلتان 2 و3 وشاشة البداية) -->
+<svg style="display:none;" aria-hidden="true">
+  <g id="mezo-svg-icon">
+    <path d="M 25 45 Q 25 15 50 15 Q 75 15 75 45 Q 75 55 65 60 Q 50 65 35 60 Q 25 55 25 45 Z" fill="#b2bec3" />
+    <path d="M 32 30 Q 32 22 50 22 Q 68 22 68 30 Q 68 50 50 50 Q 32 50 32 30 Z" fill="#2d3436" />
+    <circle cx="42" cy="35" r="5" fill="#81ecec" />
+    <circle cx="58" cy="35" r="5" fill="#81ecec" />
+    <path d="M 45 42 Q 50 47 55 42 Z" fill="#ffffff" />
+    <path d="M 35 65 Q 35 58 50 58 Q 65 58 65 65 L 70 85 Q 70 90 50 90 Q 30 90 30 85 Z" fill="#b2bec3" />
+    <circle cx="50" cy="72" r="3" fill="#636e72" />
+  </g>
+</svg>
+
+<div id="bctl">
+  <button style="background:#e0e7ff;color:#4338ca;" onclick="openAiChatModal()">دردشة ذكية مع ميزو</button>
+  <button id="sound-toggle-btn" style="background:#4f46e5;color:white;" onclick="toggleSound()">الصوت: مفعل</button>
+</div>
+
+<div id="strip" aria-live="polite"></div>
+
+<!-- =====================================================================
+     بطاقة B: البداية + المرحلتان 2 و3 + نهاية المرحلة + التقرير الشامل
+     ===================================================================== -->
+<div id="cardB">
+
+  <!-- شاشة البداية -->
+  <div id="v-start" class="vw on">
+    <div style="margin-bottom:24px;">
+      <div id="welcome-avatar" class="mezo-bounce" style="width:128px;height:128px;margin:0 auto 12px auto;cursor:pointer;" onclick="greetWelcome()" title="انقر لسماع التحية">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;filter:drop-shadow(0 4px 6px rgba(0,0,0,.1));"><use href="#mezo-svg-icon" /></svg>
+      </div>
+      <h1 style="font-size:2rem;font-weight:bold;color:#4f46e5;margin-bottom:8px;">لعبة صعبة لكن مألوفة</h1>
+      <p style="color:#64748b;">مسابقات تفاعلية ذكية لتنمية التركيز والمهارات المدرسية وتقبّل الطرق الجديدة مع الروبوت ميزو!</p>
+      <p style="color:#94a3b8;font-size:.85rem;margin-top:6px;">4 مراحل ممتعة، وفي النهاية تقرير شامل عن تعلّمك</p>
+    </div>
+    <div style="background:#eef2ff;border:1px solid #c7d2fe;padding:24px;border-radius:16px;margin:0 auto;max-width:400px;text-align:right;">
+      <label for="child-name" style="display:block;color:#334155;font-weight:bold;margin-bottom:8px;">الرجاء إدخال اسم البطل للبدء:</label>
+      <input type="text" id="child-name" class="input-box" placeholder="اكتب اسم الطفل هنا..." autocomplete="off" onkeydown="if(event.key==='Enter')GAME.begin()">
+      <button onclick="GAME.begin()" class="btn-primary" style="width:100%;">ابدأ المغامرة الآن 🚀</button>
+    </div>
+  </div>
+
+  <!-- شاشة أسئلة المرحلتين 2 و3 -->
+  <div id="v-game" class="vw">
+    <div class="bx-row">
+      <span id="player-display" class="badge"></span>
+      <span id="stage-badge" style="background:#fef3c7;color:#92400e;padding:6px 12px;border-radius:8px;font-size:.85rem;">المهمة الأولى</span>
+      <span id="question-counter" style="background:#f1f5f9;padding:6px 12px;border-radius:8px;font-size:.85rem;">السؤال 1 من 4</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#f0f9ff;border:2px dashed #7dd3fc;border-radius:16px;padding:12px;margin-bottom:24px;gap:8px;">
+      <div style="display:flex;align-items:center;gap:12px;text-align:right;flex:1;">
+        <div id="mezo-avatar" class="mezo-bounce" style="width:48px;height:48px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;background:white;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,.1);padding:4px;" onclick="repeatMezoSpeech()" title="انقر لإعادة الاستماع">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;"><use href="#mezo-svg-icon" /></svg>
+        </div>
+        <div style="color:#0c4a6e;font-weight:bold;font-size:1rem;" id="mezo-speech">مرحباً يا بطل!</div>
+      </div>
+      <button onclick="repeatMezoSpeech()" style="background:#10b981;color:white;border:none;font-weight:bold;font-size:12px;padding:8px 16px;border-radius:10px;cursor:pointer;">إعادة الصوت</button>
+    </div>
+    <div style="font-size:1.5rem;font-weight:bold;color:#0f172a;margin-bottom:24px;" id="question-title"></div>
+    <div id="options-grid" style="display:grid;gap:20px;margin-bottom:24px;"></div>
+    <div id="feedback-banner" style="font-weight:bold;font-size:1.1rem;min-height:30px;"></div>
+  </div>
+
+  <!-- نهاية مرحلة (2 و3) -->
+  <div id="v-stagedone" class="vw">
+    <div style="font-size:4rem;margin-bottom:8px;">🌟</div>
+    <h2 id="sd-title" style="font-size:1.8rem;font-weight:bold;color:#059669;margin:0 0 10px;"></h2>
+    <p id="sd-sum" style="color:#475569;font-size:1.1rem;margin:0 0 24px;line-height:1.8;"></p>
+    <button id="sd-next" class="btn-primary" style="font-size:1.15rem;padding:14px 32px;" onclick="GAME.next()"></button>
+  </div>
+
+  <!-- التقرير الشامل -->
+  <div id="v-report" class="vw" style="text-align:right;">
+    <h1 id="rep-title" style="font-size:2rem;font-weight:bold;color:#0284c7;text-align:center;margin:0 0 8px;">تقرير لعبة صعبة لكن مألوفة</h1>
+    <p style="color:#64748b;margin:0 0 24px;text-align:center;font-size:.9rem;">تحليل شامل لاختيارات الطفل وزمن الاستجابة وتقبّله للطرق الجديدة عبر المراحل الأربع</p>
+
+    <div class="rp-kpis">
+      <div class="rp-kpi" style="border-color:#fcd34d;"><span style="color:#b45309;">النقاط الإجمالية</span><strong id="rep-score" style="font-size:1.4rem;color:#d97706;">0</strong></div>
+      <div class="rp-kpi" style="border-color:#6ee7b7;"><span style="color:#047857;">إجابات صحيحة من أول محاولة</span><strong id="rep-first" style="font-size:1.1rem;color:#059669;">0</strong></div>
+      <div class="rp-kpi" style="border-color:#7dd3fc;"><span style="color:#0369a1;">الوقت المستغرق</span><strong id="rep-time" style="font-size:1.25rem;color:#0284c7;">0</strong></div>
+      <div class="rp-kpi" style="border-color:#c7d2fe;"><span style="color:#3730a3;">المستوى العام</span><strong id="rep-level" style="font-size:1.1rem;color:#4f46e5;">—</strong></div>
+    </div>
+
+    <h3 class="rp-h">مقارنة الأداء بين المراحل</h3>
+    <div id="rep-stages" style="margin-bottom:14px;"></div>
+
+    <div class="rp-box">
+      <div><h4>1. تقييم الأداء العام</h4><p id="eval-1"></p></div>
+      <div><h4>2. تحليل زمن الاستجابة والتلميحات</h4><p id="eval-2"></p></div>
+      <div><h4>3. التوصية التربوية</h4><p id="eval-3"></p></div>
+    </div>
+
+    <div class="rp-cols">
+      <div class="rp-col" style="background:#ecfdf5;border:2px solid #6ee7b7;"><h4 style="color:#047857;">✅ مهارات أجاب عنها من أول محاولة</h4><ul id="rep-strong"></ul></div>
+      <div class="rp-col" style="background:#fffbeb;border:2px solid #fcd34d;"><h4 style="color:#b45309;">🔁 مهارات تحتاج إلى مراجعة</h4><ul id="rep-weak"></ul></div>
+    </div>
+
+    <h3 class="rp-h">التفاصيل الكاملة لكل مهمة</h3>
+    <div class="rp-table">
+      <table>
+        <thead><tr>
+          <th>المهمة</th><th>زمن الاستجابة</th><th>عدد الأخطاء</th><th>الخيار الخاطئ الذي اختاره</th><th>سرعة الاستجابة</th><th>الدعم الذي ظهر</th>
+        </tr></thead>
+        <tbody id="rep-table-body"></tbody>
+      </table>
+    </div>
+    <p class="rp-note" id="rep-note"></p>
+
+    <div class="rp-btns">
+      <button style="background:#0284c7;" onclick="exportImage()">تصدير كصورة</button>
+      <button style="background:#059669;" onclick="exportCSV()">تحميل ملف Excel</button>
+      <button style="background:#d97706;" onclick="GAME.restart()">إعادة اللعبة</button>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================================
+     بطاقة A: المرحلتان 1 و5
+     ===================================================================== -->
+<div id="cardA" class="max-w-3xl w-full bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-6 md:p-8 text-center border-4 border-amber-300 relative overflow-hidden u-hide">
+
+  <header class="mb-6">
+    <h1 id="aHeader" class="text-3xl md:text-4xl font-black text-purple-700 mb-2 drop-shadow-sm"></h1>
+    <p id="aStage" class="text-slate-500 font-bold text-sm md:text-base"></p>
+    <div id="aDots" class="flex justify-center gap-2 mt-3"></div>
+  </header>
+
+  <div class="bg-gradient-to-r from-slate-800 to-indigo-900 rounded-2xl p-4 md:p-5 text-white mb-6 flex flex-col md:flex-row items-center gap-4 shadow-xl border-2 border-cyan-400">
+    <div class="w-20 h-20 bg-slate-700 rounded-full flex flex-col items-center justify-center shrink-0 floating robot-glow border-2 border-cyan-300 relative overflow-hidden p-1 shadow-inner">
+      <svg viewBox="0 0 100 100" class="w-full h-full" aria-hidden="true">
+        <path d="M 30,35 Q 20,35 20,55 Q 20,80 35,90 L 65,90 Q 80,80 80,55 Q 80,35 70,35 Z" fill="#94a3b8" />
+        <path d="M 25,50 Q 50,20 75,50 Q 85,75 75,90 L 25,90 Q 15,75 25,50 Z" fill="#cbd5e1" opacity="0.6"/>
+        <path d="M 28,38 Q 50,30 72,38 Q 78,55 70,72 Q 50,78 30,72 Q 22,55 28,38 Z" fill="#1e293b" />
+        <circle cx="40" cy="52" r="7" fill="#22d3ee" />
+        <circle cx="60" cy="52" r="7" fill="#22d3ee" />
+        <path d="M 44,63 Q 50,69 56,63" stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none" />
+        <circle cx="50" cy="80" r="3.5" fill="#334155" />
+      </svg>
+    </div>
+    <div class="text-right flex-1">
+      <div class="flex items-center justify-between mb-1 gap-2">
+        <span class="font-bold text-cyan-300 text-base md:text-lg">ميزو (المساعد الذكي)</span>
+        <button onclick="A.toggleNarration()" class="bg-cyan-400 hover:bg-cyan-500 text-slate-900 font-extrabold px-3 py-1 rounded-xl text-xs md:text-sm shadow transition transform hover:scale-105 flex items-center gap-1">
+          🔊 <span id="aSpeakText">استمع للقصة</span>
+        </button>
+      </div>
+      <p id="aStory" class="text-slate-100 text-sm md:text-base leading-relaxed"></p>
+    </div>
+  </div>
+
+  <div id="aQuiz" class="transition-all duration-500">
+    <h2 id="aQuestion" class="text-lg md:text-xl font-black text-slate-700 mb-6 bg-amber-50 p-3 rounded-xl border border-amber-200"></h2>
+    <div id="aChoices" class="grid grid-cols-1 sm:grid-cols-3 gap-6"></div>
+  </div>
+
+  <div id="aSuccess" class="hidden py-8">
+    <div class="text-6xl mb-4 animate-bounce">🌟🎉🌟</div>
+    <h2 id="aSuccessTitle" class="text-3xl font-black text-green-600 mb-3"></h2>
+    <p id="aSuccessMsg" class="text-slate-600 text-lg mb-6 leading-relaxed"></p>
+    <button onclick="A.proceed()" class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-black text-xl px-10 py-4 rounded-2xl shadow-xl transition transform hover:scale-105 border-2 border-white flex items-center justify-center gap-3 mx-auto">
+      <span id="aNextText"></span><span class="text-2xl">🚀</span>
+    </button>
+  </div>
+
+  <div id="aModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <!-- نافذة قصة ليلى (المرحلة 1) -->
+    <div id="aBoxStory" class="bg-white rounded-3xl max-w-2xl w-full p-4 md:p-6 text-center shadow-2xl border-4 border-amber-400 relative max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-center gap-2 mb-2">
+        <span class="text-2xl">💡</span>
+        <h3 class="text-lg md:text-xl font-black text-purple-700">قصة تعليمية: ليلى وطريقة العشرة</h3>
+      </div>
+      <p class="text-slate-600 text-xs md:text-sm mb-3">شاهد هذه القصة التفاعلية لتتعلم كيف نتناول الطرق الجديدة بصدر رحب:</p>
+      <div class="story-tv mb-4 text-right">
+                    <div class="story-stage" id="storyStage">
+                        <button id="storyStartBtn" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-size:1.2rem; padding:10px 20px; z-index:5;" onclick="startInteractiveStory(event)">🔊 ابدأ القصة التفاعلية</button>
+
+                        <svg width="0" height="0" style="position:absolute"><defs>
+                        <g id="layla"><path d="M-45 0L-30-90H30L45 0Z" fill="#ff7aa2"/><circle cy="-130" r="45" fill="#f6c196"/>
+                        <path d="M-48-135a48 48 0 0 1 96 0q-20-25-48-20q-28-5-48 20Z" fill="#3b2a4a"/><circle cx="-54" cy="-118" r="13" fill="#3b2a4a"/><circle cx="54" cy="-118" r="13" fill="#3b2a4a"/>
+                        <circle cx="-16" cy="-130" r="5" fill="#222"/><circle cx="16" cy="-130" r="5" fill="#222"/>
+                        <circle cx="-28" cy="-115" r="6" fill="#ff9aa8" opacity=".7"/><circle cx="28" cy="-115" r="6" fill="#ff9aa8" opacity=".7"/></g>
+                        <g id="owl"><ellipse cy="-70" rx="55" ry="70" fill="#8a5a3c"/><ellipse cy="-52" rx="34" ry="44" fill="#e9c9a0"/>
+                        <circle cx="-20" cy="-110" r="19" fill="#fff"/><circle cx="20" cy="-110" r="19" fill="#fff"/>
+                        <circle cx="-20" cy="-110" r="7" fill="#222"/><circle cx="20" cy="-110" r="7" fill="#222"/>
+                        <path d="M-8-96L8-96L0-82Z" fill="#f5a623"/><circle cx="-20" cy="-110" r="22" fill="none" stroke="#2b2350" stroke-width="3"/><circle cx="20" cy="-110" r="22" fill="none" stroke="#2b2350" stroke-width="3"/>
+                        <path d="M-18 0h10M8 0h10" stroke="#f5a623" stroke-width="6" stroke-linecap="round"/></g>
+                        </defs></svg>
+
+                        <!-- Scene 1 -->
+                        <section class="story-sc on"><svg viewBox="0 0 800 400">
+                        <use href="#layla" x="260" y="360"/><path d="M246 248q14 14 28 0" stroke="#222" stroke-width="4" fill="none" stroke-linecap="round"/>
+                        <g class="story-pop" style="--d:.3s"><rect x="360" y="40" width="400" height="110" rx="30" fill="#fff" stroke="#2b2350" stroke-width="4"/><text x="560" y="105" text-anchor="middle" font-size="40">٨ + ٥ = ؟ سأعدّ بأصابعي!</text></g>
+                        <g font-size="46"><text class="story-pop" style="--d:1.5s" x="420" y="260" fill="#3f7cff">٩</text><text class="story-pop" style="--d:2.1s" x="500" y="260">١٠</text><text class="story-pop" style="--d:2.7s" x="590" y="260">١١</text><text class="story-pop" style="--d:3.3s" x="670" y="260">١٢</text><text class="story-pop" style="--d:3.9s" x="740" y="260">١٣</text></g>
+                        </svg></section>
+
+                        <!-- Scene 2 -->
+                        <section class="story-sc"><svg viewBox="0 0 800 400">
+                        <use href="#layla" x="220" y="360"/><path d="M206 252q14 -12 28 0" stroke="#222" stroke-width="4" fill="none" stroke-linecap="round"/>
+                        <use href="#owl" x="600" y="360"/>
+                        <g class="story-pop" style="--d:.3s"><rect x="360" y="30" width="400" height="100" rx="30" fill="#fff" stroke="#2b2350" stroke-width="4"/><text x="560" y="92" text-anchor="middle" font-size="34">جرّبي طريقة جديدة: كوّني عشرة!</text></g>
+                        <g class="story-pop" style="--d:2.4s"><rect x="20" y="30" width="300" height="80" rx="30" fill="#ffd0d8" stroke="#2b2350" stroke-width="4"/><text x="170" y="84" text-anchor="middle" font-size="34">لا! طريقتي أسهل!</text></g>
+                        </svg></section>
+
+                        <!-- Scene 3 -->
+                        <section class="story-sc"><svg viewBox="0 0 800 400">
+                        <use href="#layla" x="220" y="360"/><path d="M210 248h20" stroke="#222" stroke-width="4" stroke-linecap="round"/>
+                        <use href="#owl" x="600" y="360"/>
+                        <g class="story-pop" style="--d:.3s"><rect x="330" y="30" width="430" height="100" rx="30" fill="#fff" stroke="#2b2350" stroke-width="4"/><text x="545" y="92" text-anchor="middle" font-size="34">لا بأس أن نتعثّر. الخطأ يعلّمنا!</text></g>
+                        <g class="story-pop story-blink" style="--d:2s"><circle cx="220" cy="90" r="30" fill="#ffe14d" stroke="#2b2350" stroke-width="4"/><path d="M210 125h20" stroke="#2b2350" stroke-width="6"/></g>
+                        </svg></section>
+
+                        <!-- Scene 4 -->
+                        <section class="story-sc"><svg viewBox="0 0 800 400">
+                        <text x="400" y="60" text-anchor="middle" font-size="44">٨ + ٥</text>
+                        <g fill="#3f7cff" stroke="#2b2350" stroke-width="3"><circle cx="100" cy="170" r="17"/><circle cx="140" cy="170" r="17"/><circle cx="180" cy="170" r="17"/><circle cx="220" cy="170" r="17"/><circle cx="260" cy="170" r="17"/><circle cx="300" cy="170" r="17"/><circle cx="340" cy="170" r="17"/><circle cx="380" cy="170" r="17"/></g>
+                        <g fill="#ff9a3c" stroke="#2b2350" stroke-width="3"><circle class="story-mv" cx="480" cy="170" r="17"/><circle class="story-mv" cx="520" cy="170" r="17"/><circle cx="560" cy="170" r="17"/><circle cx="600" cy="170" r="17"/><circle cx="640" cy="170" r="17"/></g>
+                        <rect class="story-pop" style="--d:2.8s" x="78" y="140" width="408" height="60" rx="30" fill="none" stroke="#2b2350" stroke-width="4" stroke-dasharray="10 8"/>
+                        <text class="story-pop" style="--d:.8s" x="400" y="250" text-anchor="middle" font-size="34">خذي ٢ من الخمسة لتكمّلي العشرة</text>
+                        <text class="story-pop" style="--d:3.2s" x="400" y="315" text-anchor="middle" font-size="46" fill="#3f7cff">١٠ + ٣ = ١٣</text>
+                        </svg></section>
+
+                        <!-- Scene 5 -->
+                        <section class="story-sc"><svg viewBox="0 0 800 400">
+                        <use href="#layla" x="260" y="360"/><path d="M244 246q16 18 32 0" stroke="#222" stroke-width="4" fill="none" stroke-linecap="round"/>
+                        <use href="#owl" x="600" y="360"/>
+                        <g font-size="44" fill="#ffc400"><text class="story-pop story-blink" style="--d:.3s" x="150" y="120">★</text><text class="story-pop story-blink" style="--d:.6s" x="380" y="80">★</text><text class="story-pop story-blink" style="--d:.9s" x="120" y="250">★</text></g>
+                        <g class="story-pop" style="--d:1s"><rect x="340" y="30" width="430" height="110" rx="30" fill="#fff" stroke="#2b2350" stroke-width="4"/><text x="555" y="80" text-anchor="middle" font-size="32">الطريقة الجديدة لا تلغي القديمة،</text><text x="555" y="120" text-anchor="middle" font-size="32">بل تضيف أداة جديدة لحقيبتي!</text></g>
+                        </svg></section>
+                    </div>
+                    <div class="story-bar"><i id="storyBar"></i></div>
+                    <p class="story-cap" id="storyCap"></p>
+                    <div class="story-ctl">
+                        <button onclick="changeStoryScene(-1)">▶ السابق</button>
+                        <button id="storyPlayBtn" onclick="toggleStoryPlay()">إيقاف مؤقت</button>
+                        <button onclick="changeStoryScene(1)">التالي ◀</button>
+                    </div>
+                </div>
+      <button onclick="A.closeModal()" class="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-black px-8 py-2.5 rounded-xl shadow-lg transition transform hover:scale-105 text-sm md:text-base">فهمت الدرس، فلنحاول مرة أخرى 🚀</button>
+    </div>
+    <!-- نافذة التنبيه (المرحلة 4) -->
+    <div id="aBoxText" class="bg-white rounded-3xl max-w-lg w-full p-6 text-center shadow-2xl border-4 border-red-400 relative u-hide">
+      <div class="flex items-center justify-center gap-2 mb-2">
+        <span class="text-3xl">⚠️</span>
+        <h3 id="aModalTitle" class="text-xl md:text-2xl font-black text-red-600"></h3>
+      </div>
+      <p id="aModalText" class="text-slate-600 text-sm md:text-base mb-4"></p>
+      <button id="aModalBtn" onclick="A.closeModal()" class="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-black px-8 py-3 rounded-xl shadow-lg transition transform hover:scale-105 text-base"></button>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================================
+     بطاقة D: المرحلة 3 (الحروف وقواعد الصف)
+     ===================================================================== -->
+<div id="cardD" class="u-hide">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><marker id="ar" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#fff"/></marker></defs></svg>
+  <section id="dS1">
+    <h1>المهمة الأولى: نظّف الحرف بالرشاش 💦</h1>
+    <p class="t">ابدأ من النقطة الصفراء 🟡 وامسح الحرف باتجاه الأسهم</p>
+    <div class="stars" id="dSt1">☆☆☆</div>
+    <div class="row" id="dLetters"></div>
+    <button id="dNext" style="display:none" onclick="D.toWheel()">المهمة الثانية ⮜</button>
+  </section>
+  <section id="dS2" style="display:none">
+    <h1>المهمة الثانية: عجلة قواعد الصف 🎡</h1>
+    <button id="dAsk" onclick="D.ask()">🎧 اسمع المساعد</button><br>
+    <div id="dBubble">اضغط على الزر لتسمع القاعدة</div>
+    <div class="stars" id="dSt2">☆☆☆☆☆</div>
+    <svg class="wheel" id="dWheel" viewBox="-110 -110 220 220"></svg>
+    <p class="t">اختر الصورة التي تناسب القاعدة</p>
+    <div class="pics" id="dPics"></div>
+    <button id="dAgain" style="display:none" onclick="GAME.next()">المرحلة التالية ◀</button>
+  </section>
+</div>
+<div id="d-spr">🚿</div>
+
+<!-- نافذة الدردشة (المرحلتان 2 و3) -->
+<div id="ai-chat-modal" style="position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;" class="u-hide">
+  <div style="background:white;width:100%;max-width:500px;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,.25);overflow:hidden;display:flex;flex-direction:column;height:500px;">
+    <div style="background:#4f46e5;color:white;padding:16px;display:flex;justify-content:space-between;align-items:center;">
+      <h3 style="font-weight:bold;font-size:1.1rem;margin:0;">الدردشة الذكية مع ميزو</h3>
+      <button onclick="closeAiChatModal()" style="background:none;border:none;color:white;font-weight:bold;font-size:1.25rem;cursor:pointer;">✕</button>
+    </div>
+    <div id="chat-messages" style="flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;background:#f8fafc;text-align:right;font-size:.9rem;">
+      <div style="background:#e0e7ff;color:#312e81;padding:12px;border-radius:16px;border-top-left-radius:0;max-width:80%;margin-right:auto;">مرحباً! كيف يمكنني مساعدتك في لعبة صعبة لكن مألوفة اليوم؟</div>
+    </div>
+    <div style="padding:12px;background:white;border-top:1px solid #cbd5e1;display:flex;gap:8px;">
+      <input type="text" id="chat-input" style="flex:1;padding:10px 14px;border:1px solid #cbd5e1;border-radius:10px;font-size:.9rem;outline:none;" placeholder="اكتب سؤالك..." onkeypress="if(event.key==='Enter') sendChatMessage()">
+      <button onclick="sendChatMessage()" style="background:#4f46e5;color:white;border:none;padding:10px 20px;border-radius:10px;font-size:.9rem;font-weight:bold;cursor:pointer;">إرسال</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   بيانات الأسئلة (منقولة حرفياً من الملفات الأصلية)
+   الصور مراجع خارجية: ضعها بجانب هذا الملف كما كانت
+   ===================================================================== */
+const G1_DATA = [
+            {
+                title: "المرحلة الأولى: شرح المعلمة للطريقة الجديدة",
+                story: "بسنت اعتادت حل مسألة الطرح؛ مثال: 5 ناقص 4 يساوي 1، بطريقة أن تضع الرقم الكبير على أصابعها ثم تطرح منه الرقم الصغير. إلا أن المعلمة قد علمتهم اليوم طريقة مختلفة وهي العد على الأصابع بدءًا من العدد الأصغر حتى تصل إلى العدد الأكبر. وقد عادت بسنت إلى والدها حزينة لأنها لا ترغب في تعلم هذه الطريقة.",
+                question: "🤔 ماذا يتوجب على بسنت فعله عندما شرحت المعلمة مسألة الطرح بطريقة جديدة؟",
+                successText: "أحسنت! تقبلت بسنت الطريقة الجديدة بسعة صدر ومرحبة بالتعلم.",
+                options: [
+                    { type: "angry", img: "q1-1.jpg", label: "حزينة ومنزعجة من التغيير", alt: "بسنت حزينة" },
+                    { type: "happy", img: "q1-2.jpg", label: "مرحبة ومتفتحة لتعلم الطريقة الجديدة", alt: "بسنت مرحبة ومبتسمة" },
+                    { type: "angry", img: "q1-3.jpg", label: "تشير بالسالب وتعترض بحدة", alt: "بسنت تشير بالسالب" }
+                ]
+            },
+            {
+                title: "المرحلة الثانية: عند عدم فهم الطريقة الجديدة",
+                story: "حين بدأت المعلمة بتطبيق طريقة العد التصاعدي من الأصغر للأكبر، وجدت بسنت صعوبة في فهمها للوهلة الأولى ولم تدرك كيف تطبقها تماماً كما اعتادت في الطريقة القديمة.",
+                question: "🤔 ماذا يتوجب على بسنت فعله عندما لم تفهم الطريقة الجديدة؟",
+                successText: "رائع جداً! استفسرت بسنت وسألت معلمتها بهدوء بدلاً من اليأس أو البكاء.",
+                options: [
+                    { type: "angry", img: "q2-1.jpg", label: "تبكى وتستسلم للشعور بالإحباط", alt: "بسنت تبكي" },
+                    { type: "angry", img: "q2-2.jpg", label: "تخرج من الفصل غاضبة", alt: "بسنت تخرج من الفصل" },
+                    { type: "happy", img: "q2-3.jpg", label: "متحمسة و تسأل المعلمة لتوضيح الفكرة", alt: "بسنت متحمسة" }
+                ]
+            }
+        ];
+const G2_DATA = [
+        {
+            stageName: "السؤال الأول",
+            title: "أي من الصور الآتية لا ترتبط بالفصل؟",
+            topic: "العناصر المرتبطة بالفصل",
+            difficulty: "سهل",
+            hint: "ابحث عن الصورة الغريبة التي لا توجد داخل الفصل الدراسي.",
+            options: [
+                { text: "سبورة", img: "q1-o1 (1).jpg", correct: false },
+                { text: "لوحات", img: "q1-o1 (3).jpg", correct: false },
+                { text: "سيارة", img: "q1-o1 (2).jpg", correct: true }
+            ]
+        },
+        {
+            stageName: "السؤال الثاني",
+            title: "أي من الصور الآتية لا ترتبط بالمدرسة؟",
+            topic: "العناصر المرتبطة بالمدرسة",
+            difficulty: "متوسط",
+            hint: "فكر جيداً، ما هي الوسيلة التي لا تخص البيئة المدرسية؟",
+            options: [
+                { text: "العلم", img: "q2-o1(1).jpg", correct: false },
+                { text: "طلاب", img: "q2-o1 (2).jpg", correct: false },
+                { text: "طائرة", img: "q2-o1 (3).jpg", correct: true }
+            ]
+        },
+        {
+            stageName: "السؤال الثالث",
+            title: "أي من الصور الآتية لا ترتبط بمادة الرياضيات؟",
+            topic: "العناصر المرتبطة بمادة الرياضيات",
+            difficulty: "متوسط",
+            hint: "اختر العنصر الذي لا ينتمي لمجال الأرقام والحساب والرياضيات.",
+            options: [
+                { text: "الجمع والطرح", img: "q3-o1 (2).jpg", correct: false },
+                { text: "الارقام", img: "q3-o1 (1).jpg", correct: false },
+                { text: "الكرة الأرضية", img: "q3-o1 (3).jpg", correct: true }
+            ]
+        },
+        {
+            stageName: "السؤال الرابع",
+            title: "أي من الصور الآتية لا ترتبط بمادة اللغة العربية؟",
+            topic: "العناصر المرتبطة بمادة اللغة العربية",
+            difficulty: "متقدم",
+            hint: "دقق في الخيارات وحدد الصورة التي لا تخص لغتنا العربية.",
+            options: [
+                { text: "الحروف", img: "q4-o1 (3).jpg", correct: false },
+                { text: "كلمات", img: "q4-o1 (2).jpg", correct: false },
+                { text: "خريطة", img: "q4-o1 (1).jpg", correct: true }
+            ]
+        },
+        {
+            stageName: "السؤال الخامس",
+            title: "أي من الصور الآتية لا تنتمي للأدوات المدرسية؟",
+            topic: "الأدوات المدرسية",
+            difficulty: "متقدم",
+            hint: "استبعد الأداة التي نستخدمها في مكان آخر غير المدرسة أو الدراسة.",
+            options: [
+                { text: "قلم", img: "q5-o1 (3).jpg", correct: false },
+                { text: "كراسة", img: "q5-o1 (1).jpg", correct: false },
+                { text: "فرشاة أسنان", img: "q5-o1 (2).jpg", correct: true }
+            ]
+        }
+    ];
+const G4_DATA = [
+            {
+                title: "السؤال الأول",
+                story: "قررت بسنت طلب المساعدة من المعلمة لتعلم الطريقة الجديدة فقد تكون أكثر سهولة من الطريقة التي اعتاد عليها.",
+                question: "1- بم ستشعر بعد تعلم قصة بسنت عندما تضطر لتعلم طرائق جديدة غير مألوفة؟",
+                successMessage: "رائع جداً! تتعلم من قصة بسنت الحماس وتقبل الطرق الجديدة بكل سرور.",
+                options: [
+                    { type: "wrong", img: "q1-p1.jpg", label: "حزينة", alt: "حزينة" },
+                    { type: "correct", img: "q1-p2.jpg", label: "تشعر بالحماس", alt: "تشعر بالحماس" },
+                    { type: "wrong", img: "q1-p3.jpg", label: "غاضبة", alt: "غاضبة" }
+                ]
+            },
+            {
+                title: "السؤال الثاني",
+                story: "عندما تطلب إليك المعلمة أداء الأنشطة بطرائق جديدة ومبتكرة.",
+                question: "2- كيف ستسلك بعد تعلم قصة بسنت عندما تطلب إليك المعلمة أداء الأنشطة بطرائق جديدة؟",
+                successMessage: "ممتاز! تسلك بشكل إيجابي وسعيد متقبلاً للأنشطة الجديدة.",
+                options: [
+                    { type: "wrong", img: "q2-p1.jpg", label: "مشاغبة", alt: "مشاغبة" },
+                    { type: "wrong", img: "q2-p2.jpg", label: "تخرج من الفصل", alt: "تخرج" },
+                    { type: "correct", img: "q2-p3.jpg", label: "سعيدة ومتعاونة", alt: "سعيدة" }
+                ]
+            },
+            {
+                title: "السؤال الثالث",
+                story: "تتعامل بسنت مع معلمتها بإصرار على حل المسألة الحسابية بطريقة جديدة ومفيدة.",
+                question: "3- ما رد فعل بسنت تجاه معلمتها بعد الإصرار على حل المسألة الحسابية بطريقة جديدة؟",
+                successMessage: "أحسنت! أظهرت بسنت تقبلاً رائعاً ومرونة تامة تجاه توجيهات المعلمة.",
+                options: [
+                    { type: "wrong", img: "q3-p3.jpg", label: "تعترض", alt: "تعترض" },
+                    { type: "wrong", img: "q3-p2.jpg", label: "تدير ظهرها", alt: "تدير ظهرها" },
+                    { type: "correct", img: "q3-p1.jpg", label: "تنظر بتقبل واهتمام", alt: "تنظر بتقبل" }
+                ]
+            },
+            {
+                title: "السؤال الرابع",
+                story: "عندما تتقبل بسنت الحل بطريقة جديدة، تشعر المعلمة بالفخر وتشجع طالبتها المميزة.",
+                question: "4- بم ستشعر المعلمة بعد تقبل بسنت الحل بطريقة جديدة؟",
+                successMessage: "رائع جداً! تقوم المعلمة بتشجيع الطالبة ودعمها نحو التميز المستمر.",
+                options: [
+                    { type: "correct", img: "q4-p1.jpg", label: "تشجع الطالبة", alt: "تشجع" },
+                    { type: "wrong", img: "q4-p2.jpg", label: "متسلطة", alt: "متسلطة" },
+                    { type: "wrong", img: "q4-p3.jpg", label: "غاضبة", alt: "غاضبة" }
+                ]
+            }
+        ];
+
+const STAGES = {
+  1: { name: "صعبة لكن مألوفة", skill: "تقبّل الطريقة الجديدة وطلب التوضيح عند عدم الفهم", slow: [12, 20] },
+  2: { name: "التعليم الذكي", skill: "استبعاد العنصر غير المرتبط بالفصل والمدرسة والمواد", slow: [4.5, 7] },
+  3: { name: "الحروف وقواعد الصف", skill: "كتابة الحروف والتزام قواعد الصف", slow: [10, 18] },
+  4: { name: "مغامرات بسنت", skill: "المشاعر والسلوك الإيجابي عند تعلّم طرائق جديدة", slow: [12, 20] }
+};
+const TOTAL_STAGES = 4;
+
+/* المرحلتان 1 و4: قصة + ثلاثة خيارات بإطارات ملوّنة */
+const A_CFG = {
+  1: {
+    header: "🌟 لعبة صعبة لكن مألوفة 🌟", okType: "happy", modal: "story",
+    successTitle: "أحسنت يا بطل! اختيار رائع", nextBtn: "انتقل للمهمة التالية", lastBtn: "انتقل للمرحلة التالية",
+    topics: ["شرح المعلمة للطريقة الجديدة", "عند عدم فهم الطريقة الجديدة"],
+    toReport: false, items: G1_DATA, successKey: "successText"
+  },
+  4: {
+    header: "🌟 لعبة مغامرات بسنت 🌟", okType: "correct", modal: "text",
+    successTitle: "أحسنت يا بطل! إجابة صحيحة", nextBtn: "السؤال التالي", lastBtn: "إنهاء اللعبة بنجاح",
+    modalTitle: "انتبه يا صغيري! هذا ليس التصرف السليم",
+    modalText: "تذكر كيف تتفاعل بسنت بتعقل وهدوء مع معلمتها، ثم حاول مرة أخرى:",
+    modalBtn: "حسناً، فلنحاول مرة أخرى 🚀",
+    topics: ["شعور الطفل عند تعلّم طرائق جديدة", "السلوك عند طلب المعلمة أنشطة بطرائق جديدة",
+             "رد الفعل تجاه المعلمة بعد الإصرار على الحل الجديد", "شعور المعلمة بعد تقبّل الطالبة للحل الجديد"],
+    toReport: true, items: G4_DATA, successKey: "successMessage"
+  }
+};
+
+/* المرحلة 2: أسئلة بالصور */
+const B_CFG = {
+  2: {
+    grid: 240, imgH: 170, minH: 280, titleSize: "1.4rem", questions: G2_DATA,
+    chat: "أنا هنا دائماً لمساعدتك في قياس وتطوير مهارات التمييز والتركيز الذكي يا بطل!"
+  }
+};
+
+/* المرحلة 3: قواعد الصف */
+const D_RULES = [
+  { t: "استمع وانظر إلى المعلم", i: "👀", c: "#ee8134" },
+  { t: "ارفع إصبعك قبل أن تتحدث", i: "🙋", c: "#d9805f" },
+  { t: "اخفض صوتك عندما تتحدث", i: "🤫", c: "#c9776a" },
+  { t: "حافظ على نظافة الصف", i: "🧹", c: "#a98a87" },
+  { t: "حافظ على يديك وقدميك وأشياءك بعيدًا عن الآخرين", i: "🙅", c: "#9a9a9a" }
+];
+const D_LETTERS = [
+  { n: "أ", d: "M100 52 L100 178", dots: [[100, 22, 9]] },
+  { n: "ب", d: "M165 65 L165 100 C165 125 152 130 130 130 L70 130 C48 130 35 122 35 100 L35 70", dots: [[100, 170, 9]] },
+  { n: "د", d: "M55 60 L105 60 C140 62 148 90 140 118 C134 140 112 150 88 150 L45 150" }
+];
+
+/* =====================================================================
+   أدوات عامة
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const clean = s => String(s).replace(/^[^\p{L}\p{N}]+/u, '').trim();
+const sum = (arr, f) => arr.reduce((t, x) => t + f(x), 0);
+const fmtTime = s => s < 60 ? `${Math.round(s)} ثانية` : `${Math.floor(s / 60)} د ${Math.round(s % 60)} ث`;
+
+let soundEnabled = true;
+function stopAllSpeech() { if ('speechSynthesis' in window) speechSynthesis.cancel(); }
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  $('sound-toggle-btn').innerText = soundEnabled ? "الصوت: مفعل" : "الصوت: مكتوم";
+  if (!soundEnabled) stopAllSpeech();
+}
+function speakText(text) {
+  if (!soundEnabled || !('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'ar-SA'; u.rate = 1.0; u.pitch = 1.1;
+  const avatars = document.querySelectorAll('#mezo-avatar, #welcome-avatar');
+  u.onstart = () => avatars.forEach(a => a.classList.add('speaking-glow'));
+  u.onend = u.onerror = () => avatars.forEach(a => a.classList.remove('speaking-glow'));
+  speechSynthesis.speak(u);
+}
+function greetWelcome() { speakText("أهلاً بك في لعبة صعبة لكن مألوفة مع ميزو لتنمية التركيز والمهارات المدرسية!"); }
+function repeatMezoSpeech() { const q = B.cfg && B.cfg.questions[B.i]; if (q) speakText(q.title); }
+
+function openAiChatModal() { $('ai-chat-modal').classList.remove('u-hide'); }
+function closeAiChatModal() { $('ai-chat-modal').classList.add('u-hide'); }
+function sendChatMessage() {
+  const input = $('chat-input'), text = input.value.trim();
+  if (!text) return;
+  const box = $('chat-messages');
+  const me = document.createElement('div');
+  me.style.cssText = "background:#4f46e5;color:white;padding:12px;border-radius:16px;border-top-right-radius:0;max-width:80%;margin-left:auto;";
+  me.innerText = text; box.appendChild(me); input.value = ""; box.scrollTop = box.scrollHeight;
+  setTimeout(() => {
+    const m = document.createElement('div');
+    m.style.cssText = "background:#e0e7ff;color:#312e81;padding:12px;border-radius:16px;border-top-left-radius:0;max-width:80%;margin-right:auto;";
+    m.innerText = "أنا هنا دائماً لمساعدتك في قياس وتطوير مهارات التمييز والتركيز الذكي يا بطل!";
+    box.appendChild(m); box.scrollTop = box.scrollHeight;
+    speakText("أنا هنا دائما لمساعدتك يا بطل");
+  }, 800);
+}
+
+/* =====================================================================
+   جمع بيانات التعلّم (مشترك بين كل المراحل)
+   ===================================================================== */
+const DATA = { name: "", t0: 0, t1: 0, records: [] };
+function newRec(meta) {
+  const r = Object.assign({
+    attempts: 0, wrong: 0, wrongChoices: [], firstLatency: null, elapsed: 0,
+    correct: false, firstTry: false, support: null, task: false, t0: performance.now()
+  }, meta);
+  DATA.records.push(r);
+  return r;
+}
+function logAnswer(r, ok, label) {
+  const now = performance.now();
+  r.attempts++;
+  if (r.firstLatency === null) r.firstLatency = (now - r.t0) / 1000;
+  if (ok) { r.correct = true; r.firstTry = (r.wrong === 0); r.elapsed = (now - r.t0) / 1000; }
+  else { r.wrong++; r.wrongChoices.push(label); }
+}
+
+/* =====================================================================
+   قصة ليلى التفاعلية (نافذة المرحلة 1) — منقولة من الأصل
+   ===================================================================== */
+const storyCaps = ["ليلى تحب العدّ بأصابعها، وهذه طريقتها المفضلة.", "البومة الحكيمة تقترح طريقة جديدة، وليلى تشعر بالضيق.", "ليلى تتعثّر في البداية، والبومة تطمئنها.", "نكوّن عشرة أولًا، ثم نضيف الباقي. هل رأيتم كم هي سريعة؟", "ليلى تفرح: صارت تملك طريقتين بدل طريقة واحدة!"];
+const storySay = ["ليلى تحب العدّ بأصابعها. ثمانية زائد خمسة، سأعدّ بأصابعي!", "البومة الحكيمة تقول: جرّبي طريقة جديدة، كوّني عشرة! فتقول ليلى: لا! طريقتي أسهل!", "لكن ليلى تتعثّر في البداية. فتقول البومة: لا بأس أن نتعثّر. الخطأ يعلّمنا!", "نكوّن عشرة أولًا. نأخذ اثنين من الخمسة، فيصير عندنا ثمانية زائد اثنين تساوي عشرة. ثم نضيف الثلاثة الباقية، فيكون الناتج ثلاثة عشر. ما أسرعها!", "ليلى فرحانة! الطريقة الجديدة لا تلغي القديمة، بل تضيف أداة جديدة إلى حقيبتها."];
+const storyD = [6500, 7000, 6000, 8500, 7000];
+const storyS = [...document.querySelectorAll(".story-sc")];
+let storyIndex = 0, storyPlaying = false, storyT0 = 0, storyFb;
+
+function speakStoryScene() {
+  clearTimeout(storyFb);
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  if (!storyPlaying) return;
+  const u = new SpeechSynthesisUtterance(storySay[storyIndex]);
+  u.lang = "ar-SA"; u.rate = .85; u.pitch = 1.25;
+  speechSynthesis.speak(u);
+}
+function showStoryScene(n) {
+  storyIndex = (n + storyS.length) % storyS.length;
+  storyS.forEach(s => s.classList.remove("on"));
+  storyS[storyIndex].classList.add("on");
+  $("storyCap").textContent = storyCaps[storyIndex];
+  storyT0 = performance.now();
+  speakStoryScene();
+}
+function tickStory(now) {
+  if (storyPlaying) {
+    const p = (now - storyT0) / storyD[storyIndex];
+    $("storyBar").style.width = Math.min(p, 1) * 100 + "%";
+    if (p >= 1) showStoryScene(storyIndex + 1);
+  }
+  if (!$('aModal').classList.contains('hidden')) requestAnimationFrame(tickStory);
+}
+function startInteractiveStory(e) {
+  if (e) e.target.hidden = true;
+  storyPlaying = true;
+  $("storyPlayBtn").textContent = "إيقاف مؤقت";
+  showStoryScene(0);
+  requestAnimationFrame(tickStory);
+}
+function resetAndStartStory() {
+  $("storyStartBtn").hidden = false;
+  storyPlaying = false; storyIndex = 0;
+  storyS.forEach(s => s.classList.remove("on"));
+  storyS[0].classList.add("on");
+  $("storyCap").textContent = storyCaps[0];
+  $("storyBar").style.width = "0%";
+  $("storyPlayBtn").textContent = "إيقاف مؤقت";
+  stopAllSpeech();
+}
+function stopStory() { storyPlaying = false; stopAllSpeech(); }
+function toggleStoryPlay() {
+  storyPlaying = !storyPlaying;
+  $("storyPlayBtn").textContent = storyPlaying ? "إيقاف مؤقت" : "تشغيل";
+  storyT0 = performance.now() - parseFloat($("storyBar").style.width || 0) / 100 * storyD[storyIndex];
+  if ('speechSynthesis' in window) { storyPlaying ? speechSynthesis.resume() : speechSynthesis.pause(); }
+  if (storyPlaying) requestAnimationFrame(tickStory);
+}
+function changeStoryScene(dir) {
+  storyPlaying = true;
+  $("storyPlayBtn").textContent = "إيقاف مؤقت";
+  $("storyStartBtn").hidden = true;
+  showStoryScene(storyIndex + dir);
+}
+
+/* =====================================================================
+   المرحلتان 1 و4 — محرك القصة والاختيار
+   ===================================================================== */
+const A = {
+  cfg: null, no: 0, i: 0, rec: null, speaking: false,
+
+  start(no) {
+    this.no = no; this.cfg = A_CFG[no]; this.i = 0;
+    const c = this.cfg;
+    $('aHeader').textContent = c.header;
+    $('aBoxStory').classList.toggle('u-hide', c.modal !== 'story');
+    $('aBoxText').classList.toggle('u-hide', c.modal !== 'text');
+    if (c.modal === 'text') {
+      $('aModalTitle').textContent = c.modalTitle;
+      $('aModalText').textContent = c.modalText;
+      $('aModalBtn').textContent = c.modalBtn;
+    }
+    $('aModal').classList.add('hidden');
+    this.stopSpeech();
+    this.load(0);
+  },
+
+  load(i) {
+    const c = this.cfg, it = c.items[i];
+    this.i = i;
+    const title = it.title.replace(/^المرحلة/, 'المهمة');
+    $('aStage').textContent = title;
+    $('aStory').textContent = it.story;
+    $('aQuestion').textContent = it.question;
+    $('aSuccessTitle').textContent = c.successTitle;
+    $('aSuccessMsg').textContent = it[c.successKey];
+    $('aNextText').textContent = (i === c.items.length - 1) ? c.lastBtn : c.nextBtn;
+
+    const box = $('aChoices'); box.innerHTML = '';
+    it.options.forEach(opt => {
+      const ok = opt.type === c.okType;
+      const d = document.createElement('div');
+      d.tabIndex = 0; d.setAttribute('role', 'button');
+      d.className = "choice group cursor-pointer bg-white rounded-2xl p-4 border-4 " +
+        (ok ? "border-green-200 hover:border-green-500" : "border-red-200 hover:border-red-500") +
+        " shadow-md hover:shadow-xl transition-all transform hover:-translate-y-2 flex flex-col items-center";
+      d.onclick = () => this.choose(opt, ok);
+      d.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.choose(opt, ok); } };
+      d.innerHTML = `
+        <div class="overflow-hidden rounded-xl w-full h-48 bg-slate-100 flex items-center justify-center relative">
+          <img src="${opt.img}" alt="${esc(opt.alt || opt.label)}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.onerror=null;this.src='https://placehold.co/400x300/dcfce7/16a34a?text=صورة+الاختيار'">
+        </div>
+        <p class="mt-4 font-bold ${ok ? 'text-green-600' : 'text-red-600'} text-sm md:text-base">${esc(opt.label)}</p>`;
+      box.appendChild(d);
+    });
+
+    $('aSuccess').classList.add('hidden');
+    $('aQuiz').classList.remove('hidden');
+    this.rec = newRec({ stage: this.no, qNo: i + 1, topic: c.topics[i], question: it.question.replace(/^[^\p{L}]+/u, ''), difficulty: null });
+  },
+
+  choose(opt, ok) {
+    this.stopSpeech();
+    logAnswer(this.rec, ok, clean(opt.label));
+    if (ok) {
+      $('aQuiz').classList.add('hidden');
+      $('aSuccess').classList.remove('hidden');
+    } else {
+      if (!this.rec.support) this.rec.support = (this.cfg.modal === 'story') ? 'story' : 'hint';
+      if (this.cfg.modal === 'story') resetAndStartStory();
+      $('aModal').classList.remove('hidden');
+    }
+  },
+
+  closeModal() {
+    if (this.cfg.modal === 'story') stopStory();
+    $('aModal').classList.add('hidden');
+  },
+
+  proceed() {
+    if (this.i + 1 < this.cfg.items.length) { this.load(this.i + 1); return; }
+    if (this.cfg.toReport) GAME.report(); else GAME.next();
+  },
+
+  stopSpeech() {
+    stopAllSpeech(); this.speaking = false;
+    const t = $('aSpeakText'); if (t) t.innerText = "استمع للقصة";
+  },
+
+  toggleNarration() {
+    if (!('speechSynthesis' in window)) { alert("عذراً، متصفحك لا يدعم خاصية الصوت."); return; }
+    if (this.speaking) { this.stopSpeech(); return; }
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(this.cfg.items[this.i].story);
+    u.lang = 'ar-SA'; u.rate = 0.9; u.pitch = 1.1;
+    u.onstart = () => { this.speaking = true; $('aSpeakText').innerText = "إيقاف الصوت"; };
+    u.onend = u.onerror = () => { this.speaking = false; $('aSpeakText').innerText = "استمع للقصة"; };
+    speechSynthesis.speak(u);
+  }
+};
+
+/* =====================================================================
+   المرحلة 2 — محرك الأسئلة بالصور
+   ===================================================================== */
+const B = {
+  cfg: null, no: 0, i: 0, rec: null, locked: false,
+
+  start(no) { this.no = no; this.cfg = B_CFG[no]; this.i = 0; this.load(); },
+
+  load() {
+    const c = this.cfg;
+    if (this.i >= c.questions.length) { GAME.stageDone(this.no); return; }
+    const q = c.questions[this.i];
+    this.locked = false;
+    this.rec = newRec({ stage: this.no, qNo: this.i + 1, topic: q.topic, question: q.title, difficulty: q.difficulty });
+    $('question-counter').innerText = `السؤال ${this.i + 1} من ${c.questions.length}`;
+    $('stage-badge').innerText = q.stageName;
+    $('question-title').style.fontSize = c.titleSize;
+    $('question-title').innerText = q.title;
+    $('feedback-banner').innerText = "";
+    $('mezo-speech').innerText = q.title;
+    this.render(q);
+    speakText(q.title);
+  },
+
+  render(q) {
+    const c = this.cfg, grid = $('options-grid');
+    grid.style.gridTemplateColumns = `repeat(auto-fit, minmax(${c.grid}px, 1fr))`;
+    grid.innerHTML = "";
+    q.options.forEach((opt, idx) => {
+      const card = document.createElement('div');
+      card.className = `option-card-${idx}`;
+      card.style.cssText = `background:white;border:2px solid #cbd5e1;border-radius:16px;padding:16px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:space-between;box-shadow:0 1px 2px rgba(0,0,0,.05);min-height:${c.minH}px;transition:all .2s;`;
+      card.onmouseover = () => { card.style.borderColor = "#4f46e5"; card.style.transform = "translateY(-4px)"; };
+      card.onmouseout = () => { card.style.borderColor = "#cbd5e1"; card.style.transform = "translateY(0)"; };
+      card.onclick = () => this.answer(idx);
+      card.innerHTML =
+        `<div style="width:100%;height:${c.imgH}px;margin-bottom:12px;display:flex;align-items:center;justify-content:center;background:#f8fafc;border-radius:12px;overflow:hidden;padding:4px;border:1px solid #f1f5f9;box-sizing:border-box;">` +
+        `<img src="${opt.img}" alt="${esc(opt.text)}" style="width:100%;height:100%;object-fit:contain;border-radius:8px;" onerror="this.onerror=null;this.src='https://placehold.co/300x200/f1f5f9/4f46e5?text=صورة'">` +
+        `</div><span style="font-size:.95rem;font-weight:bold;color:#1e293b;text-align:center;">${esc(opt.text)}</span>`;
+      grid.appendChild(card);
+    });
+  },
+
+  answer(idx) {
+    if (this.locked) return;
+    const q = this.cfg.questions[this.i], opt = q.options[idx], banner = $('feedback-banner');
+    logAnswer(this.rec, opt.correct, opt.text);
+    if (opt.correct) {
+      this.locked = true;
+      banner.style.color = "#10b981";
+      banner.innerText = `أبدعت يا ${DATA.name}! إجابة صحيحة وممتازة جداً!`;
+      $('mezo-speech').innerText = banner.innerText;
+      speakText(banner.innerText);
+      setTimeout(() => { this.i++; this.load(); }, 1200);
+    } else {
+      if (!this.rec.support) this.rec.support = 'glow';
+      q.options.forEach((o, k) => {
+        if (o.correct) { const el = document.querySelector(`#options-grid .option-card-${k}`); if (el) el.classList.add('adaptive-hint-glow'); }
+      });
+      const hint = q.hint || "ركز قليلاً يا بطل وجرب الإطار المضيء!";
+      banner.style.color = "#ef4444";
+      banner.innerText = `محاولة للتفكير: ${hint}`;
+      $('mezo-speech').innerText = banner.innerText;
+      speakText(hint);
+    }
+  }
+};
+
+/* =====================================================================
+   المرحلة 3 — الحروف (رشاش) + عجلة قواعد الصف
+   ===================================================================== */
+const SVGNS = "http://www.w3.org/2000/svg";
+const svgEl = (n, a, p) => { const e = document.createElementNS(SVGNS, n); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
+function dSay(t) { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = "ar-SA"; u.rate = .8; speechSynthesis.speak(u); } catch (e) {} }
+
+const D = {
+  t0: 0, doneCount: 0, recs: [], todo: [], cur: null, solved: 0,
+
+  start() {
+    this.t0 = Date.now(); this.doneCount = 0; this.recs = []; this.cur = null;
+    $('dS1').style.display = 'block'; $('dS2').style.display = 'none';
+    $('dNext').style.display = 'none'; $('dSt1').textContent = "☆☆☆";
+    $('d-spr').style.display = 'none';
+    this.buildLetters();
+  },
+
+  drops(x, y) {
+    const d = document.createElement("div"); d.className = "d-drop";
+    d.style.left = x + (Math.random() * 20 - 10) + "px"; d.style.top = y + (Math.random() * 10) + "px";
+    document.body.appendChild(d); setTimeout(() => d.remove(), 500);
+  },
+
+  buildLetters() {
+    const wrap = $('dLetters'); wrap.innerHTML = "";
+    const spr = $('d-spr');
+    D_LETTERS.forEach(L => {
+      const card = document.createElement("div"); card.className = "lc";
+      const s = svgEl("svg", { viewBox: "0 0 200 200", "aria-label": "حرف " + L.n }, card);
+      svgEl("rect", { width: 200, height: 200, fill: "#6cc35b" }, s);
+      svgEl("rect", { y: 150, width: 200, height: 50, fill: "#5ab04a" }, s);
+      const stain = svgEl("path", { d: L.d, fill: "none", stroke: "#2f4a2a", "stroke-width": 28, "stroke-linecap": "round", "stroke-linejoin": "round" }, s);
+      const ds = (L.dots || []).map(q => svgEl("circle", { cx: q[0], cy: q[1], r: q[2], fill: "#2f4a2a" }, s));
+      const guide = svgEl("path", { d: L.d, fill: "none", stroke: "#fff", "stroke-width": 3, "stroke-dasharray": "7 6", "marker-end": "url(#ar)", "pointer-events": "none" }, s);
+      const len = stain.getTotalLength(), p0 = stain.getPointAtLength(0);
+      const start = svgEl("circle", { cx: p0.x, cy: p0.y, r: 8, fill: "#ffd23f", stroke: "#fff", "stroke-width": 2, "pointer-events": "none" }, s);
+      const ok = document.createElement("span"); ok.className = "ok"; ok.textContent = "⭐"; card.appendChild(ok);
+      let p = 0, fin = false;
+      stain.setAttribute("stroke-dasharray", len + " " + len); stain.setAttribute("stroke-dashoffset", 0);
+      const pt = e => { const q = s.createSVGPoint(); q.x = e.clientX; q.y = e.clientY; return q.matrixTransform(s.getScreenCTM().inverse()); };
+      const move = e => {
+        spr.style.display = "block"; spr.style.left = e.clientX + "px"; spr.style.top = e.clientY + "px";
+        if (e.buttons === 0 && e.pointerType === "mouse") return;
+        this.drops(e.clientX, e.clientY);
+        if (fin) return;
+        const c = pt(e); let moved = false;
+        while (p < len) {
+          const q = stain.getPointAtLength(Math.min(p + 8, len));
+          if (Math.hypot(q.x - c.x, q.y - c.y) < 26) { p = Math.min(p + 8, len); moved = true; } else break;
+        }
+        if (moved) { stain.setAttribute("stroke-dashoffset", -p); if (p > 0) start.style.display = "none"; }
+        if (p >= len - 1) {
+          fin = true; stain.style.display = "none"; guide.style.display = "none";
+          ds.forEach(c => c.style.display = "none");
+          card.classList.add("done"); this.doneCount++;
+          $("dSt1").textContent = "⭐".repeat(this.doneCount) + "☆".repeat(3 - this.doneCount); dSay("أحسنت");
+          if (this.doneCount === 3) $("dNext").style.display = "inline-block";
+        }
+      };
+      s.addEventListener("pointerdown", e => { s.setPointerCapture(e.pointerId); move(e); });
+      s.addEventListener("pointermove", move);
+      s.addEventListener("pointerleave", () => spr.style.display = "none");
+      s.addEventListener("pointerup", () => { if (!fin) spr.style.display = "none"; });
+      wrap.appendChild(card);
+    });
+  },
+
+  toWheel() {
+    const sec = (Date.now() - this.t0) / 1000;
+    newRec({ stage: 3, qNo: 1, topic: "تنظيف الحروف بالرشاش (أ، ب، د)", question: "امسح الحرف باتجاه الأسهم", difficulty: null,
+             task: true, attempts: 1, correct: true, firstTry: true, firstLatency: sec, elapsed: sec });
+    $('dS1').style.display = 'none'; $('d-spr').style.display = 'none'; $('dS2').style.display = 'block';
+    this.startWheel();
+  },
+
+  drawWheel() {
+    const w = $("dWheel"); w.innerHTML = "";
+    D_RULES.forEach((r, k) => {
+      const a0 = (k * 72 - 90) * Math.PI / 180, a1 = ((k + 1) * 72 - 90) * Math.PI / 180, R = 100;
+      const g = svgEl("g", { class: "slice", id: "sl" + k, opacity: .55 }, w);
+      svgEl("path", { d: `M0 0L${R * Math.cos(a0)} ${R * Math.sin(a0)}A${R} ${R} 0 0 1 ${R * Math.cos(a1)} ${R * Math.sin(a1)}Z`, fill: r.c, stroke: "#fff", "stroke-width": 2 }, g);
+      const m = (a0 + a1) / 2, tx = svgEl("text", { x: 58 * Math.cos(m), y: 58 * Math.sin(m), "text-anchor": "middle", "font-size": 11, fill: "#fff", "font-weight": 800, "font-family": "inherit" }, g);
+      tx.textContent = String(k + 1);
+    });
+  },
+
+  startWheel() {
+    this.solved = 0; this.recs = []; this.cur = null;
+    this.todo = [0, 1, 2, 3, 4].sort(() => Math.random() - .5);
+    $("dSt2").textContent = "☆☆☆☆☆"; $("dAgain").style.display = "none"; $("dAsk").style.display = "inline-block";
+    $("dBubble").textContent = "اضغط على الزر لتسمع القاعدة";
+    this.drawWheel();
+    const P = $("dPics"); P.innerHTML = "";
+    [0, 1, 2, 3, 4].sort(() => Math.random() - .5).forEach(k => {
+      const b = document.createElement("button"); b.className = "pic"; b.textContent = D_RULES[k].i;
+      b.setAttribute("aria-label", "صورة " + (k + 1));
+      b.onclick = () => this.pick(k, b); P.appendChild(b);
+    });
+  },
+
+  ask() {
+    if (!this.todo.length) return;
+    this.cur = this.todo[0];
+    const k = this.cur, t = D_RULES[k].t;
+    if (!this.recs[k]) {
+      this.recs[k] = newRec({ stage: 3, qNo: DATA.records.filter(r => r.stage === 3).length + 1, topic: "قاعدة: " + t,
+                              question: "اختر الصورة التي تناسب القاعدة: " + t, difficulty: null });
+    }
+    $("dBubble").textContent = "🎧 " + t; dSay(t);
+  },
+
+  pick(k, b) {
+    if (this.cur === null) { this.ask(); return; }
+    const rec = this.recs[this.cur];
+    if (k === this.cur) {
+      logAnswer(rec, true, '');
+      b.classList.add("right"); b.disabled = true;
+      $("sl" + k).setAttribute("opacity", 1); this.solved++; this.todo.shift(); this.cur = null;
+      const tx = document.querySelector("#sl" + k + " text"); tx.textContent = D_RULES[k].i; tx.setAttribute("font-size", 20);
+      $("dSt2").textContent = "⭐".repeat(this.solved) + "☆".repeat(5 - this.solved); dSay("أحسنت");
+      if (this.solved === 5) {
+        $("dBubble").textContent = "🎉 رائع! أكملت كل القواعد";
+        $("dAgain").style.display = "inline-block"; $("dAsk").style.display = "none";
+      } else $("dBubble").textContent = "صحيح! اضغط لتسمع القاعدة التالية";
+    } else {
+      logAnswer(rec, false, `اختار صورة «${D_RULES[k].t}»`);
+      if (!rec.support) rec.support = 'replay';
+      b.classList.remove("wrong"); void b.offsetWidth; b.classList.add("wrong");
+      $("dBubble").textContent = "حاول مرة أخرى 🎧 " + D_RULES[this.cur].t; dSay(D_RULES[this.cur].t);
+    }
+  }
+};
+
+/* =====================================================================
+   التنقل بين الشاشات والمراحل
+   ===================================================================== */
+const VIEW_CARD = { start: 'B', s2: 'B', done: 'B', report: 'B', s1: 'A', s4: 'A', s3: 'D' };
+const B_SCREEN = { start: 'v-start', s2: 'v-game', done: 'v-stagedone', report: 'v-report' };
+
+function renderStrip(v) {
+  const s = $('strip');
+  if (v === 'start' || v === 'report') { s.classList.remove('on'); return; }
+  const n = GAME.cur; let pips = '';
+  for (let i = 1; i <= TOTAL_STAGES; i++) pips += `<i class="pip ${(i < n || (i === n && v === 'done')) ? 'done' : (i === n ? 'cur' : '')}"></i>`;
+  s.innerHTML = `<span class="lbl">المرحلة ${n} من ${TOTAL_STAGES} · ${STAGES[n].name}</span><span class="pips">${pips}</span>`;
+  s.classList.add('on');
+}
+
+function showView(v) {
+  document.body.dataset.view = v;
+  const c = VIEW_CARD[v];
+  $('cardB').classList.toggle('u-hide', c !== 'B');
+  $('cardA').classList.toggle('u-hide', c !== 'A');
+  $('cardD').classList.toggle('u-hide', c !== 'D');
+  if (c !== 'D') $('d-spr').style.display = 'none';
+  if (c === 'B') {
+    document.querySelectorAll('#cardB .vw').forEach(e => e.classList.remove('on'));
+    $(B_SCREEN[v]).classList.add('on');
+  }
+  $('bctl').style.display = (c === 'B') ? 'flex' : 'none';
+  document.body.classList.toggle('has-ctl', c === 'B');
+  renderStrip(v);
+  window.scrollTo(0, 0);
+}
+
+const GAME = {
+  cur: 0,
+
+  begin() {
+    const nm = $('child-name').value.trim();
+    if (!nm) { alert("الرجاء كتابة اسم البطل أولاً!"); return; }
+    DATA.name = nm; DATA.records = []; DATA.t0 = performance.now(); DATA.t1 = 0;
+    $('player-display').innerText = `البطل: ${nm}`;
+    this.go(1);
+  },
+
+  go(n) {
+    stopAllSpeech();
+    this.cur = n;
+    if (n === 1 || n === 4) { showView('s' + n); A.start(n); }
+    else if (n === 2) { showView('s2'); B.start(2); }
+    else if (n === 3) { showView('s3'); D.start(); }
+  },
+
+  next() { this.go(this.cur + 1); },
+
+  stageDone(n) {
+    const rs = DATA.records.filter(r => r.stage === n && !r.task);
+    const first = rs.filter(r => r.firstTry).length;
+    $('sd-title').textContent = `أحسنت يا ${DATA.name}! أنهيت المرحلة ${n}`;
+    $('sd-sum').textContent = `أجبت عن ${first} من ${rs.length} أسئلة إجابة صحيحة من المحاولة الأولى.`;
+    $('sd-next').textContent = `انتقل إلى المرحلة ${n + 1} 🚀`;
+    showView('done');
+    speakText(`أحسنت يا ${DATA.name}! أنهيت المرحلة ${n}.`);
+  },
+
+  report() {
+    stopAllSpeech();
+    DATA.t1 = performance.now();
+    buildReport();
+    showView('report');
+    speakText(`تهانينا يا ${DATA.name}! لقد أتممت جميع مراحل لعبة صعبة لكن مألوفة بنجاح.`);
+  },
+
+  restart() {
+    stopAllSpeech();
+    DATA.records = []; this.cur = 0;
+    showView('start');
+  }
+};
+
+/* =====================================================================
+   التحليلات الشاملة
+   ===================================================================== */
+const points = r => (r.task || !r.correct) ? 0 : (r.wrong === 0 ? 10 : (r.wrong === 1 ? 6 : 3));
+function level(acc) {
+  if (acc >= 0.9) return { t: "ممتاز", c: "#059669" };
+  if (acc >= 0.75) return { t: "جيد جداً", c: "#059669" };
+  if (acc >= 0.5) return { t: "جيد", c: "#0284c7" };
+  return { t: "يحتاج إلى مزيد من التدريب", c: "#d97706" };
+}
+function speedOf(r) {
+  if (r.task) return { t: "—", c: "#64748b" };
+  const [mid, slow] = STAGES[r.stage].slow, lat = r.firstLatency || 0;
+  if (lat > slow) return { t: "أطول من المعتاد", c: "#b45309" };
+  if (lat > mid) return { t: "متوسطة", c: "#0284c7" };
+  return { t: "سريعة", c: "#059669" };
+}
+function supportOf(r) {
+  if (r.task) return "نشاط عملي (بلا تلميحات)";
+  if (r.support === 'story') return "عُرضت قصة ليلى التفاعلية بعد خطأ";
+  if (r.support === 'hint') return "ظهر تنبيه تصحيحي بعد خطأ";
+  if (r.support === 'glow') return "ظهر الإطار المضيء بعد خطأ";
+  if (r.support === 'replay') return "أُعيد تشغيل القاعدة صوتياً بعد خطأ";
+  return "لم يحتج إلى تلميح";
+}
+function stageStat(n) {
+  const rs = DATA.records.filter(r => r.stage === n), sc = rs.filter(r => !r.task), N = sc.length;
+  const first = sc.filter(r => r.firstTry).length;
+  return {
+    rs, sc, N, first, acc: N ? first / N : 0,
+    wrong: sum(sc, r => r.wrong),
+    support: sc.filter(r => r.support).length,
+    avg: N ? sum(sc, r => r.firstLatency || 0) / N : 0,
+    time: sum(rs, r => r.elapsed || r.firstLatency || 0),
+    pts: sum(sc, points),
+    tasks: rs.filter(r => r.task)
+  };
+}
+
+function buildReport() {
+  const R = DATA.records, Q = R.filter(r => !r.task), N = Q.length, name = DATA.name;
+  const totalSec = (DATA.t1 - DATA.t0) / 1000;
+  const first = Q.filter(r => r.firstTry).length;
+  const acc = N ? first / N : 0, pct = Math.round(acc * 100);
+  const pts = sum(Q, points), max = N * 10, lv = level(acc);
+
+  $('rep-title').textContent = `تقرير لعبة صعبة لكن مألوفة (${name})`;
+  $('rep-score').textContent = `${pts} / ${max}`;
+  $('rep-first').textContent = `${first} من ${N} (${pct}%)`;
+  $('rep-time').textContent = fmtTime(totalSec);
+  const lvEl = $('rep-level'); lvEl.textContent = lv.t; lvEl.style.color = lv.c;
+
+  const st = {}; for (let n = 1; n <= TOTAL_STAGES; n++) st[n] = stageStat(n);
+  $('rep-stages').innerHTML = Object.keys(st).map(k => {
+    const n = +k, s = st[n], l = level(s.acc);
+    const taskChips = s.tasks.map(t => `<span>${esc(t.topic)}: ${fmtTime(t.elapsed)}</span>`).join('');
+    return `<div class="st-row">
+      <div class="st-head"><b>المرحلة ${n}: ${STAGES[n].name}</b><span class="st-lvl" style="color:${l.c}">${l.t} · ${Math.round(s.acc * 100)}%</span></div>
+      <div class="st-skill">${STAGES[n].skill}</div>
+      <div class="st-bar"><span style="width:${Math.round(s.acc * 100)}%;background:${l.c}"></span></div>
+      <div class="st-chips">
+        <span>صحيح من أول محاولة: ${s.first} من ${s.N}</span><span>عدد الأخطاء: ${s.wrong}</span><span>مرات ظهور الدعم: ${s.support}</span>
+        <span>متوسط الاستجابة: ${s.avg.toFixed(1)} ث</span><span>زمن المرحلة: ${fmtTime(s.time)}</span><span>النقاط: ${s.pts} / ${s.N * 10}</span>${taskChips}
+      </div>
+    </div>`;
+  }).join('');
+
+  const stages = Object.keys(st).map(Number);
+  const best = stages.reduce((a, b) => st[b].acc > st[a].acc ? b : a);
+  const worst = stages.reduce((a, b) => st[b].acc < st[a].acc ? b : a);
+  let p1 = `أجاب ${name} عن ${first} من ${N} سؤالاً إجابة صحيحة من المحاولة الأولى (${pct}%) عبر المراحل الأربع، وبلغ إجمالي النقاط ${pts} من ${max}. `;
+  if (st[best].acc !== st[worst].acc) p1 += `كان الأداء الأعلى في «${STAGES[best].name}» (${Math.round(st[best].acc * 100)}%)، والأكثر حاجة إلى دعم في «${STAGES[worst].name}» (${Math.round(st[worst].acc * 100)}%).`;
+  else p1 += `وكان الأداء متقارباً بين المراحل كلها.`;
+  const letters = R.find(r => r.task);
+  if (letters) p1 += ` وأتمّ تنظيف الحروف بالرشاش في ${fmtTime(letters.elapsed)}.`;
+  $('eval-1').textContent = p1;
+
+  const avgLat = N ? (sum(Q, r => r.firstLatency || 0) / N).toFixed(1) : "0";
+  const slowest = Q.reduce((a, b) => (b.firstLatency || 0) > (a.firstLatency || 0) ? b : a, Q[0] || {});
+  const supQ = Q.filter(r => r.support).length;
+  let p2 = `بلغ متوسط زمن الاستجابة الأولى ${avgLat} ثانية للسؤال`;
+  if (slowest && slowest.topic) p2 += `، وكان أطول زمن في مهمة «${slowest.topic}» (${(slowest.firstLatency || 0).toFixed(1)} ثانية)`;
+  p2 += ". " + (supQ === 0 ? "لم يحتج البطل إلى أي تلميح. " : `ظهر التلميح أو القصة التوضيحية في ${supQ} من ${N} أسئلة، وأجاب البطل بعده إجابة صحيحة. `);
+  p2 += "ملاحظة: زمن الاستجابة الأطول قد يعني التفكير أو الاستماع إلى السؤال، ولا يُعد حكماً على قدرات الطفل.";
+  $('eval-2').textContent = p2;
+
+  const weak = Q.filter(r => r.wrong > 0);
+  let p3;
+  if (!weak.length) p3 = `استمر في تشجيع ${name} على تقبّل الطرق الجديدة في التعلّم، والتزام قواعد الصف، وطلب التوضيح بهدوء عند عدم الفهم.`;
+  else {
+    const topics = [...new Set(weak.map(r => r.topic))];
+    const shown = topics.slice(0, 4).map(t => `«${t}»`).join(" و");
+    p3 = `يُنصح بمراجعة ${shown}${topics.length > 4 ? " وغيرها (انظر الجدول أدناه)" : ""} مع ${name} في مواقف الصف اليومية، وتشجيعه عملياً على تطبيقها حتى تصبح عادة.`;
+    if (st[worst].acc < 0.75) p3 += ` ويمكن إعادة لعب مرحلة «${STAGES[worst].name}» لتعزيز التعلّم.`;
+  }
+  $('eval-3').textContent = p3;
+
+  const strong = Q.filter(r => r.firstTry), cap = 8;
+  $('rep-strong').innerHTML = strong.length
+    ? strong.slice(0, cap).map(r => `<li>${esc(r.topic)}</li>`).join('') + (strong.length > cap ? `<li>و${strong.length - cap} مهارات أخرى</li>` : '')
+    : '<li>لا توجد مهارات بعد</li>';
+  $('rep-weak').innerHTML = weak.length
+    ? weak.map(r => `<li>${esc(r.topic)} <small style="color:#64748b">(المرحلة ${r.stage})</small></li>`).join('')
+    : '<li>لا توجد مهارات تحتاج مراجعة، أحسنت!</li>';
+
+  let rows = '';
+  stages.forEach(n => {
+    const s = st[n];
+    rows += `<tr class="grp"><td colspan="6">المرحلة ${n}: ${STAGES[n].name} — ${s.first} من ${s.N} صحيحة من أول محاولة</td></tr>`;
+    s.rs.forEach(r => {
+      const sp = speedOf(r), wc = r.wrongChoices.length ? esc(r.wrongChoices.join('، ')) : '—';
+      const lat = r.task ? r.elapsed : (r.firstLatency || 0);
+      rows += `<tr>
+        <td style="font-weight:bold;color:#334155;">${esc(r.topic)}${r.difficulty ? ` <small style="color:#4f46e5;font-weight:600;">· ${r.difficulty}</small>` : ''}</td>
+        <td style="color:#475569;">${lat.toFixed(1)} ثانية</td>
+        <td style="font-weight:bold;color:${r.wrong ? '#dc2626' : '#059669'};">${r.wrong}</td>
+        <td style="color:#475569;font-size:.8rem;">${wc}</td>
+        <td style="font-weight:600;color:${sp.c};">${sp.t}</td>
+        <td style="color:#4f46e5;font-weight:500;">${supportOf(r)}</td></tr>`;
+    });
+  });
+  $('rep-table-body').innerHTML = rows;
+  $('rep-note').innerHTML =
+    `طريقة احتساب النقاط: 10 نقاط للإجابة الصحيحة من أول محاولة، 6 بعد خطأ واحد، 3 بعد خطأين فأكثر. نشاط تنظيف الحروف يُعرض زمنه فقط ولا يدخل في النقاط.<br>` +
+    `في المرحلتين 1 و4 يشمل زمن الاستجابة وقت قراءة القصة أو الاستماع إليها.`;
+}
+
+function exportImage() {
+  if (typeof html2canvas === 'undefined') { alert("تعذّر تحميل أداة التصدير. تأكد من الاتصال بالإنترنت ثم أعد المحاولة."); return; }
+  html2canvas($('cardB'), { scale: 2 }).then(canvas => {
+    const a = document.createElement('a');
+    a.download = `تقرير_لعبة_صعبة_لكن_مألوفة_${DATA.name}.png`;
+    a.href = canvas.toDataURL('image/png'); a.click();
+  });
+}
+
+function exportCSV() {
+  const q = v => `"${String(v === null || v === undefined ? '' : v).replace(/"/g, '""')}"`;
+  const head = ["المرحلة", "اسم المرحلة", "رقم المهمة", "الموضوع", "مستوى الصعوبة", "زمن الاستجابة الأولى (ثانية)", "زمن إنهاء المهمة (ثانية)",
+                "عدد المحاولات", "عدد الأخطاء", "صحيحة من أول محاولة", "الإجابات الخاطئة المختارة", "سرعة الاستجابة", "الدعم الذي ظهر", "النقاط"];
+  let csv = "\uFEFF" + head.map(q).join(",") + "\n";
+  DATA.records.forEach(r => {
+    csv += [r.stage, STAGES[r.stage].name, r.qNo, r.topic, r.difficulty || '', (r.firstLatency || 0).toFixed(2), (r.elapsed || 0).toFixed(2),
+            r.attempts, r.wrong, r.task ? 'غير مطبق' : (r.firstTry ? 'نعم' : 'لا'), r.wrongChoices.join(' / '), speedOf(r).t, supportOf(r), r.task ? '' : points(r)].map(q).join(",") + "\n";
+  });
+  csv += "\n" + ["ملخص المراحل", "اسم المرحلة", "عدد الأسئلة", "صحيح من أول محاولة", "نسبة الدقة %", "عدد الأخطاء", "متوسط الاستجابة (ثانية)", "النقاط"].map(q).join(",") + "\n";
+  for (let n = 1; n <= TOTAL_STAGES; n++) {
+    const s = stageStat(n);
+    csv += [n, STAGES[n].name, s.N, s.first, Math.round(s.acc * 100), s.wrong, s.avg.toFixed(2), `${s.pts}/${s.N * 10}`].map(q).join(",") + "\n";
+  }
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+  const a = document.createElement('a');
+  a.href = url; a.download = `تقرير_لعبة_صعبة_لكن_مألوفة_${DATA.name}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+Object.assign(window, { GAME, A, B, D, toggleSound, greetWelcome, repeatMezoSpeech, openAiChatModal, closeAiChatModal, sendChatMessage,
+  exportImage, exportCSV, startInteractiveStory, toggleStoryPlay, changeStoryScene });
+showView('start');
+
+</script>
+</body>
+</html>
